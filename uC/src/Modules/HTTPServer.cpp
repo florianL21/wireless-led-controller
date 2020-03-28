@@ -28,9 +28,9 @@ int HTTPServer::init_wifi(const char* wifi_ssid, const char* wifi_passwd, uint8 
 
 void HTTPServer::getAll()
 {
-	DisplayManager::PrintStatus("Sending config ...", 4, DISPLAY_DEBUG_OUTPUT);
+	DisplayManager::PrintStatus("Sending config ...", 4, DISPLAY_DEBUG_ENABLED);
 	//							settings+headroom		the 2 nested arrays						all led arrays												single led array length					frames array length							general headroom for copy operations
-	const size_t FrameCapacity = JSON_OBJECT_SIZE(8) + JSON_OBJECT_SIZE(2) + SettingsManager::NumFrames*JSON_ARRAY_SIZE(SettingsManager::NumLeds) + JSON_OBJECT_SIZE(SettingsManager::NumLeds) + JSON_OBJECT_SIZE(SettingsManager::NumFrames) + 130 + 40 * SettingsManager::NumFrames;
+	const size_t FrameCapacity = JSON_OBJECT_SIZE(10) + JSON_OBJECT_SIZE(2) + SettingsManager::NumFrames*JSON_ARRAY_SIZE(SettingsManager::NumLeds) + JSON_OBJECT_SIZE(SettingsManager::NumLeds) + JSON_OBJECT_SIZE(SettingsManager::NumFrames) + 130 + 40 * SettingsManager::NumFrames;
 	DynamicJsonDocument doc(FrameCapacity);
 	JsonObject root = doc.to<JsonObject>();
 	JsonObject Settings = root.createNestedObject("Settings");
@@ -40,6 +40,15 @@ void HTTPServer::getAll()
 	Settings["NumLeds"] = SettingsManager::NumLeds;
 	Settings["ActiveFrame"] = SettingsManager::frameCounter;
 	Settings["AnimationActive"] = SettingsManager::animationActive;
+	if(SettingsManager::DisplayDebugInfo == DISPLAY_DEBUG_ENABLED)
+	{
+		Settings["DisplayDebugInfo"] = true;
+	}
+	else
+	{
+		Settings["DisplayDebugInfo"] = false;
+	}
+
 
 	JsonObject Frames = root.createNestedObject("Frames");
 	for(uint16 f = 0; f < SettingsManager::NumFrames; f++)
@@ -55,24 +64,35 @@ void HTTPServer::getAll()
 	char *JSONmessageBuffer = new char[length];
 	serializeJson(doc, JSONmessageBuffer, length);
 	http_rest_server->send(length, "application/json", JSONmessageBuffer);
-	DisplayManager::PrintStatus("Sending config done", 4, DISPLAY_DEBUG_OUTPUT);
+	DisplayManager::PrintStatus("Sending config done", 4, DISPLAY_DEBUG_ENABLED);
 }
 
 void HTTPServer::getSettings()
 {
-	DisplayManager::PrintStatus("Sending settings ...", 4, DISPLAY_DEBUG_OUTPUT);
-	const size_t FrameCapacity = JSON_OBJECT_SIZE(4);
+	DisplayManager::PrintStatus("Sending settings ...", 4, DISPLAY_DEBUG_ENABLED);
+	const size_t FrameCapacity = JSON_OBJECT_SIZE(10);
 	DynamicJsonDocument doc(FrameCapacity);
 	JsonObject root = doc.to<JsonObject>();
 	root["Brightness"] = SettingsManager::Brightness;
 	root["Framerate"] = SettingsManager::Framerate;
 	root["NumFrames"] = SettingsManager::NumFrames;
 	root["NumLeds"] = SettingsManager::NumLeds;
+	root["ActiveFrame"] = SettingsManager::frameCounter;
+	root["AnimationActive"] = SettingsManager::animationActive;
+	if(SettingsManager::DisplayDebugInfo == DISPLAY_DEBUG_ENABLED)
+	{
+		root["DisplayDebugInfo"] = true;
+	}
+	else
+	{
+		root["DisplayDebugInfo"] = false;
+	}
+	
 	uint32 length = measureJson(doc) + 1;
 	char *JSONmessageBuffer = new char[length];
 	serializeJson(doc, JSONmessageBuffer, length);
 	http_rest_server->send(length, "application/json", JSONmessageBuffer);
-	DisplayManager::PrintStatus("Sending settings done", 4, DISPLAY_DEBUG_OUTPUT);
+	DisplayManager::PrintStatus("Sending settings done", 4, DISPLAY_DEBUG_ENABLED);
 }
 
 void HTTPServer::postLed()
@@ -88,7 +108,7 @@ void HTTPServer::postLed()
 	}
 	else
 	{
-		DisplayManager::PrintStatus("Updateing single LED", 4, DISPLAY_DEBUG_OUTPUT);
+		DisplayManager::PrintStatus("Updateing single LED", 4, DISPLAY_DEBUG_ENABLED);
 
 		uint16 frame = 0;
 		JsonVariant jFrame = jsonBody["Frame"];
@@ -155,7 +175,7 @@ void HTTPServer::postLed()
         FrameBuffer::setLED(frame, id, color);
 		http_rest_server->sendHeader("Location", "/led/" + String(id));
 		http_rest_server->send(200);
-		DisplayManager::PrintStatus("LED update done", 4, DISPLAY_DEBUG_OUTPUT);
+		DisplayManager::PrintStatus("LED update done", 4, DISPLAY_DEBUG_ENABLED);
 	}
 }
 
@@ -187,7 +207,7 @@ void HTTPServer::postFrame()
 			return;
 		}
 		frame = jFrame.as<uint16>();
-		DisplayManager::PrintStatus("Updateing frame " + String(frame), 4, DISPLAY_DEBUG_OUTPUT);
+		DisplayManager::PrintStatus("Updateing frame " + String(frame), 4, DISPLAY_DEBUG_ENABLED);
 		if(frame >= SettingsManager::NumFrames)
 		{
 			DisplayManager::PrintStatus("Invalid frame " + String(frame) + "max = " + String(SettingsManager::NumFrames), 4);
@@ -223,7 +243,7 @@ void HTTPServer::postFrame()
 		}
 		http_rest_server->sendHeader("Location", "/leds/" + String(frame));
 		http_rest_server->send(200);
-		DisplayManager::PrintStatus("Frame " + String(frame) + " updated", 4, DISPLAY_DEBUG_OUTPUT);
+		DisplayManager::PrintStatus("Frame " + String(frame) + " updated", 4, DISPLAY_DEBUG_ENABLED);
 	}
 }
 
@@ -233,7 +253,7 @@ void HTTPServer::postSettings()
 	DynamicJsonDocument jsonBody(FrameCapacity);
 	DeserializationError error = deserializeJson(jsonBody, http_rest_server->arg("plain"));
 
-	DisplayManager::PrintStatus("Updateing settings", 4, DISPLAY_DEBUG_OUTPUT);
+	DisplayManager::PrintStatus("Updateing settings", 4, DISPLAY_DEBUG_ENABLED);
 	
 	if (error) {
 		DisplayManager::PrintStatus("Error parsing json", 4);
@@ -276,6 +296,25 @@ void HTTPServer::postSettings()
 				return;
 			}
 			SettingsManager::animationActive = animationRunning.as<bool>();
+		}
+
+		JsonVariant displayDebugInfo = jsonBody["DisplayDebugInfo"];
+		if (!displayDebugInfo.isNull())
+		{
+			if(!displayDebugInfo.is<bool>())
+			{
+				DisplayManager::PrintStatus("E: DisplayDebugInfo not bool", 4);
+				http_rest_server->send(204);
+				return;
+			}
+			if(displayDebugInfo.as<bool>() == true)
+			{
+				DisplayManager::setDebugOutput(DISPLAY_DEBUG_ENABLED);
+			}
+			else
+			{
+				DisplayManager::setDebugOutput(DISPLAY_DEBUG_DISABLED);
+			}
 		}
 
 		JsonVariant numFrames = jsonBody["NumFrames"];
@@ -343,7 +382,7 @@ void HTTPServer::postSettings()
 
 		http_rest_server->sendHeader("Location", "/settings");
 		http_rest_server->send(200);
-		DisplayManager::PrintStatus("Settings update done", 4, DISPLAY_DEBUG_OUTPUT);
+		DisplayManager::PrintStatus("Settings update done", 4, DISPLAY_DEBUG_ENABLED);
 	}
 }
 

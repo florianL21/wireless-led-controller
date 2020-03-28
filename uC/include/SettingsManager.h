@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include "DisplayManager.h"
 #include "Configuration.h"
 
 class SettingsManager
@@ -14,5 +15,6 @@ public:
 	static uint16 NumFrames;
 	static uint16 frameCounter;
 	static bool animationActive;
+	static debugOutput DisplayDebugInfo;
 };
 
