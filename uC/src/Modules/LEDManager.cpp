@@ -19,7 +19,8 @@ void LEDManager::init(uint16 numLEDs)
 	else
 	{
 		FastLedConfig = new CFastLED();
-		FastLedConfig->addLeds<WS2812B, DATA_PIN, GRB>(leds, numLEDs);
+		FastLedConfig->addLeds<LED_TYPE, LED_DATA_PIN, LED_COLOR_MODE>(leds, numLEDs);
+		FastLED.setBrightness(SettingsManager::Brightness);
 	}
 }
 
@@ -48,9 +49,9 @@ void LEDManager::setFramerate(uint16 Framerate)
 
 void LEDManager::update()
 {
+	Print(SettingsManager::frameCounter);
 	if(oldMillis + refreshIntervall < millis())
 	{
-		Print(SettingsManager::frameCounter);
 		if(SettingsManager::animationActive)
 		{
 			SettingsManager::frameCounter++;
@@ -70,4 +71,10 @@ uint32 LEDManager::getColorCode(CRGB led)
 	colorCode |= (led.green << 8);
 	colorCode |= (led.blue << 16);
 	return colorCode;
+}
+
+void LEDManager::setBrightness(uint8 brightness)
+{
+	SettingsManager::Brightness = brightness;
+	FastLED.setBrightness(brightness);
 }
