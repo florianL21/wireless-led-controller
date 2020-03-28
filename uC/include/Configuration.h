@@ -8,9 +8,9 @@
 //LED Data pin
 #define LED_DATA_PIN			D8
 //LED Type
-#define LED_TYPE                WS2812B
+#define LED_TYPE				WS2812B
 //LED Color mode
-#define LED_COLOR_MODE          GRB
+#define LED_COLOR_MODE			GRB
 
 /*************************
  * Default values:
@@ -20,7 +20,7 @@
 #define DEFAULT_ANIM_ENABLE		true
 #define DEFAULT_BRIGHTNESS		255
 #define DEFAULT_FRAMERATE		5
-#define DEFAULT_DEBUG_MODE      DISPLAY_DEBUG_DISABLED
+#define DEFAULT_DEBUG_MODE		DISPLAY_DEBUG_DISABLED
 
 /*************************
  * WIFI configuration:
@@ -38,15 +38,15 @@
 /*************************
  * Display configuration:
  *************************/
-#define DISPLAY_TYPE            U8G2_SSD1306_128X32_UNIVISION_1_HW_I2C
-#define DISPLAY_DATA_PIN        SDA
-#define DISPLAY_CLOCK_PIN       SCL
-#define DISPLAY_RESET_PIN       U8X8_PIN_NONE
-#define DISPLAY_ROTATION        U8G2_R0
-#define DISPLAY_FONT            u8g2_font_courR08_tf
-#define DISPLAY_FONT_SIZE       8
-#define DISPLAY_NUM_ROWS        4
-#define DISPLAY_MAX_LENGTH      22
+#define DISPLAY_TYPE			U8G2_SSD1306_128X32_UNIVISION_1_HW_I2C
+#define DISPLAY_DATA_PIN		SDA
+#define DISPLAY_CLOCK_PIN		SCL
+#define DISPLAY_RESET_PIN		U8X8_PIN_NONE
+#define DISPLAY_ROTATION		U8G2_R0
+#define DISPLAY_FONT			u8g2_font_courR08_tf
+#define DISPLAY_FONT_SIZE		8
+#define DISPLAY_NUM_ROWS		4
+#define DISPLAY_MAX_LENGTH		22
 
 
 #endif
