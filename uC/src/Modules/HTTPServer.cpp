@@ -252,7 +252,7 @@ void HTTPServer::postSettings()
 				http_rest_server->send(204);
 				return;
 			}
-			SettingsManager::Brightness = brightness.as<uint8>();
+			LEDManager::setBrightness(brightness.as<uint8>());
 		}
 		JsonVariant framerate = jsonBody["Framerate"];
 		if (!framerate.isNull())
