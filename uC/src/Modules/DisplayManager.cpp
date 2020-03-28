@@ -12,7 +12,7 @@ void DisplayManager::init()
 	u8g2->setFont(u8g2_font_courR08_tf);
 }
 
-void DisplayManager::PrintStatus(const char status[], uint8 line)
+void DisplayManager::PrintStatus(const char status[], uint8 line, bool debug)
 {
 	if(line <= 4 && line > 0)
 	{
@@ -32,11 +32,11 @@ void DisplayManager::PrintStatus(const char status[], uint8 line)
 	}
 }
 
-void DisplayManager::PrintStatus(String message, uint8 line)
+void DisplayManager::PrintStatus(String message, uint8 line, bool debug)
 {
 	char *buffer = new char[message.length()];
 	message.toCharArray(buffer, message.length() + 1);
-	PrintStatus(buffer, line);
+	PrintStatus(buffer, line, debug);
 }
 
 char DisplayManager::getLoadingAnimation()

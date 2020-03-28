@@ -3,6 +3,8 @@
 
 #pragma once
 
+#define DISPLAY_DEBUG_OUTPUT true
+
 class DisplayManager
 {
 private:
@@ -15,8 +17,8 @@ private:
 public:
 	static void init();
 
-	static void PrintStatus(const char status[], uint8 line);
-	static void PrintStatus(String message, uint8 line);
+	static void PrintStatus(const char status[], uint8 line, bool debug = false);
+	static void PrintStatus(String message, uint8 line, bool debug = false);
 	static char getLoadingAnimation();
 };
 

@@ -15,9 +15,9 @@ private:
     static ESP8266WebServer* http_rest_server;
 
     HTTPServer();
-    static void get_all();
-    static void post_put_led();
-    static void post_put_leds();
+    static void getAll();
+    static void postLed();
+    static void postFrame();
     static void postSettings();
     static void getSettings();
     static void config_rest_server_routing();
