@@ -278,18 +278,6 @@ void HTTPServer::postSettings()
 			SettingsManager::animationActive = animationRunning.as<bool>();
 		}
 
-		JsonVariant activeFrame = jsonBody["ActiveFrame"];
-		if (!activeFrame.isNull())
-		{
-			if(!activeFrame.is<uint16>())
-			{
-				DisplayManager::PrintStatus("E: ActiveFrame not uint16", 4);
-				http_rest_server->send(204);
-				return;
-			}
-			SettingsManager::frameCounter = activeFrame.as<uint16>();
-		}
-
 		JsonVariant numFrames = jsonBody["NumFrames"];
 		if (!numFrames.isNull()) 
 		{
@@ -305,6 +293,29 @@ void HTTPServer::postSettings()
 				numFramesChanged = true;
 			}
 		}
+
+		//has to be done after updating the number of frames.
+		//it is fine to do this here even if the frame buffer size changed
+		JsonVariant activeFrame = jsonBody["ActiveFrame"];
+		if (!activeFrame.isNull())
+		{
+			if(!activeFrame.is<uint16>())
+			{
+				DisplayManager::PrintStatus("E: ActiveFrame not uint16", 4);
+				http_rest_server->send(204);
+				return;
+			}
+			uint16 frame = activeFrame.as<uint16>();
+			if(frame >= SettingsManager::NumFrames)
+			{
+				DisplayManager::PrintStatus("E: ActiveFrame too big", 4);
+				http_rest_server->send(204);
+				return;
+			}
+			SettingsManager::frameCounter = activeFrame.as<uint16>();
+		}
+
+
 		JsonVariant numLeds = jsonBody["NumLeds"];
 		if (!numLeds.isNull())
 		{
@@ -329,6 +340,7 @@ void HTTPServer::postSettings()
 		{
             FrameBuffer::init(SettingsManager::NumLeds, SettingsManager::NumFrames);
 		}
+
 		http_rest_server->sendHeader("Location", "/settings");
 		http_rest_server->send(200);
 		DisplayManager::PrintStatus("Settings update done", 4, DISPLAY_DEBUG_OUTPUT);
