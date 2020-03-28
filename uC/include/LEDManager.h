@@ -26,4 +26,5 @@ public:
 	static void update();
 	static void setFramerate(uint16 Framerate);
 	static uint32 getColorCode(CRGB led);
+	static void setBrightness(uint8 brightness);
 };
