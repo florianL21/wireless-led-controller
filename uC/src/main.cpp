@@ -25,8 +25,6 @@ void setup(void)
 		DisplayManager::PrintStatus(WIFI_SSID, 2);
 	}
 	HTTPServer::init(HTTP_REST_PORT);
-	FrameBuffer::setLED(0,0,100);
-	FrameBuffer::setLED(0,1,1000);
 }
 
 void loop(void)
