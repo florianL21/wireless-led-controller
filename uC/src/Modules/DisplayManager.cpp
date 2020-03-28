@@ -5,8 +5,11 @@ DISPLAY_TYPE* DisplayManager::u8g2 = NULL;
 const char DisplayManager::loadingCharSequence[4] = {'|', '/', '-', '\\'};
 uint8 DisplayManager::loadingAnimationCouter = 0;
 debugOutput DisplayManager::isDebug = DISPLAY_DEBUG_DISABLED;
+uint32 DisplayManager::displayTimeout = 0;
+bool DisplayManager::diplayInSleep = false;
+uint32 DisplayManager::lastMessageTimestamp = 0;
 
-void DisplayManager::init(debugOutput isInDebugMode)
+void DisplayManager::init(debugOutput isInDebugMode, uint16 diplayTimeoutInSeconds)
 {
     u8g2 = new DISPLAY_TYPE(DISPLAY_ROTATION, DISPLAY_RESET_PIN, DISPLAY_CLOCK_PIN, DISPLAY_DATA_PIN);
     u8g2->begin();
@@ -16,6 +19,9 @@ void DisplayManager::init(debugOutput isInDebugMode)
 	{
 		lines[i][0] = '\0';
 	}
+	displayTimeout = diplayTimeoutInSeconds * 1000;
+	lastMessageTimestamp = millis();
+	diplayInSleep = false;
 }
 
 void DisplayManager::PrintStatus(const char status[], uint8 line, debugOutput debug)
@@ -41,6 +47,8 @@ void DisplayManager::PrintStatus(const char status[], uint8 line, debugOutput de
 				u8g2->print(lines[i]);
 			}
 		} while ( u8g2->nextPage() );
+		lastMessageTimestamp = millis();
+		diplayInSleep = false;
 	}
 }
 
@@ -61,4 +69,17 @@ char DisplayManager::getLoadingAnimation()
 void DisplayManager::setDebugOutput(debugOutput printDebugMessages)
 {
 	isDebug = printDebugMessages;
+}
+
+void DisplayManager::update()
+{
+	if(displayTimeout == 0)
+	{
+		return;
+	}
+	if(lastMessageTimestamp + displayTimeout < millis() && diplayInSleep == false)
+	{
+		diplayInSleep = true;
+		u8g2->clear();
+	}
 }

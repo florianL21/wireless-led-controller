@@ -7,7 +7,7 @@
 void setup(void) 
 {
 	Serial.begin(9600);
-	DisplayManager::init(DEFAULT_DEBUG_MODE);
+	DisplayManager::init(DEFAULT_DEBUG_MODE, DEFAULT_DISPLAY_TIMEOUT);
 	DisplayManager::PrintStatus("Starting...", 1);
 	LEDManager::init(DEFAULT_NUM_LED);
 	LEDManager::setFramerate(DEFAULT_FRAMERATE);
@@ -31,4 +31,5 @@ void loop(void)
 {
 	LEDManager::update();
 	HTTPServer::processRequests();
+	DisplayManager::update();
 }

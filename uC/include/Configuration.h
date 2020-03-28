@@ -21,6 +21,7 @@
 #define DEFAULT_BRIGHTNESS		255
 #define DEFAULT_FRAMERATE		5
 #define DEFAULT_DEBUG_MODE		DISPLAY_DEBUG_DISABLED
+#define DEFAULT_DISPLAY_TIMEOUT	10
 
 /*************************
  * WIFI configuration:

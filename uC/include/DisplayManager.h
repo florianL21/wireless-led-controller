@@ -14,14 +14,18 @@ private:
 	static const char loadingCharSequence[4];
 	static uint8 loadingAnimationCouter;
 	static debugOutput isDebug;
+	static uint32 displayTimeout;
+	static bool diplayInSleep;
+	static uint32 lastMessageTimestamp;
 	
 	DisplayManager();
 public:
-	static void init(debugOutput isInDebugMode);
+	static void init(debugOutput isInDebugMode, uint16 diplayTimeoutInSeconds = 0);
 
 	static void PrintStatus(const char status[], uint8 line, debugOutput debug = DISPLAY_DEBUG_DISABLED);
 	static void PrintStatus(String message, uint8 line, debugOutput debug = DISPLAY_DEBUG_DISABLED);
 	static char getLoadingAnimation();
 	static void setDebugOutput(debugOutput printDebugMessages);
+	static void update();
 };
 
