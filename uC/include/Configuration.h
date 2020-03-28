@@ -20,13 +20,14 @@
 #define DEFAULT_ANIM_ENABLE		true
 #define DEFAULT_BRIGHTNESS		255
 #define DEFAULT_FRAMERATE		5
+#define DEFAULT_DEBUG_MODE      DISPLAY_DEBUG_DISABLED
 
 /*************************
  * WIFI configuration:
  *************************/
 
-#define WIFI_SSID				"Quellengasse"
-#define WIFI_PASSWORD			"ADBE1788###"
+#define WIFI_SSID				"YOUR_WIFI_NAME"
+#define WIFI_PASSWORD			"YOUR_WIFI_PASSWORD"
 
 //can be changed to improve startup speed of the programm
 #define WIFI_RETRY_DELAY		500
@@ -37,6 +38,15 @@
 /*************************
  * Display configuration:
  *************************/
+#define DISPLAY_TYPE            U8G2_SSD1306_128X32_UNIVISION_1_HW_I2C
+#define DISPLAY_DATA_PIN        SDA
+#define DISPLAY_CLOCK_PIN       SCL
+#define DISPLAY_RESET_PIN       U8X8_PIN_NONE
+#define DISPLAY_ROTATION        U8G2_R0
+#define DISPLAY_FONT            u8g2_font_courR08_tf
+#define DISPLAY_FONT_SIZE       8
+#define DISPLAY_NUM_ROWS        4
+#define DISPLAY_MAX_LENGTH      22
 
 
 #endif

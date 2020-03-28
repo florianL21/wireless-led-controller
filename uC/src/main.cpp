@@ -7,7 +7,7 @@
 void setup(void) 
 {
 	Serial.begin(9600);
-	DisplayManager::init();
+	DisplayManager::init(DEFAULT_DEBUG_MODE);
 	DisplayManager::PrintStatus("Starting...", 1);
 	LEDManager::init(DEFAULT_NUM_LED);
 	LEDManager::setFramerate(DEFAULT_FRAMERATE);
