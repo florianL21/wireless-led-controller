@@ -21,14 +21,17 @@
 #define DEFAULT_BRIGHTNESS		255
 #define DEFAULT_FRAMERATE		5
 #define DEFAULT_DEBUG_MODE		DISPLAY_DEBUG_DISABLED
-#define DEFAULT_DISPLAY_TIMEOUT	10
+#define DEFAULT_DISPLAY_TIMEOUT	60
 
 /*************************
  * WIFI configuration:
  *************************/
-
-#define WIFI_SSID				"YOUR_WIFI_NAME"
-#define WIFI_PASSWORD			"YOUR_WIFI_PASSWORD"
+#ifndef WIFI_SSID
+    #define WIFI_SSID			"YOUR_WIFI_NAME"
+#endif
+#ifndef WIFI_PASSWORD
+    #define WIFI_PASSWORD		"YOUR_WIFI_PASSWORD"
+#endif
 
 //can be changed to improve startup speed of the programm
 #define WIFI_RETRY_DELAY		500
