@@ -23,6 +23,8 @@ public:
 	static String fileVersion;
 
 	static bool init();
+	template <class valueType>
+	static bool parseValue(JsonObject* root, String key, valueType* value);
 	static String serializeConfiguration();
 	static void deserializeConfiguration(String json);
 };

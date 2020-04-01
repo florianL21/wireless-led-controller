@@ -13,11 +13,13 @@ debugOutput SettingsManager::DisplayDebugInfo	= DEFAULT_DEBUG_MODE;
 
 bool SettingsManager::init()
 {
+	bool initOK = true;
 	SPIFFSConfig cfg;
 	cfg.setAutoFormat(false);
-	SPIFFS.setConfig(cfg);
-	SPIFFS.begin();
+	initOK &= SPIFFS.setConfig(cfg);
+	initOK &= SPIFFS.begin();
 	SPIFFS.end();
+	return initOK;
 }
 
 String SettingsManager::serializeConfiguration()
@@ -59,3 +61,104 @@ String SettingsManager::serializeConfiguration()
 	return String(JSONmessageBuffer);
 }
 
+template <class valueType>
+bool SettingsManager::parseValue(JsonObject* root, String key, valueType* value) 
+{
+	bool sucessful = false;
+	JsonVariant jvalue = (*root)[key];
+	if (!jvalue.isNull())
+	{
+		if(!jvalue.is<valueType>())
+		{
+			DisplayManager::PrintStatus("E: " + key + " out of bouds", 4);
+		}
+		else
+		{
+			*value = jvalue.as<valueType>();
+			sucessful = true;
+		}
+	}
+	return sucessful;
+}
+
+void SettingsManager::deserializeConfiguration(String json)
+{
+	//							settings+headroom		the 2 nested arrays						all led arrays												single led array length					frames array length							general headroom for copy operations
+	const size_t FrameCapacity = JSON_OBJECT_SIZE(10) + JSON_OBJECT_SIZE(2) + SettingsManager::NumFrames*JSON_ARRAY_SIZE(SettingsManager::NumLeds) + JSON_OBJECT_SIZE(SettingsManager::NumLeds) + JSON_OBJECT_SIZE(SettingsManager::NumFrames) + 130 + 40 * SettingsManager::NumFrames;
+	DynamicJsonDocument doc(FrameCapacity);
+	DeserializationError error = deserializeJson(doc, json);
+
+	if (error) 
+    {
+		DisplayManager::PrintStatus("E: Parsing json", 4);
+	}
+	else
+	{
+		JsonObject root = doc.to<JsonObject>();
+		JsonObject Settings;
+		if(parseValue<JsonObject>(&root, "Settings", &Settings) == false)
+		{
+			DisplayManager::PrintStatus("E: Settings is mandatory", 4);
+			return;
+		}
+		parseValue<uint8>(&Settings, "Brightness", &SettingsManager::Brightness);
+		parseValue<uint16>(&Settings, "Framerate", &SettingsManager::Framerate);
+		parseValue<uint16>(&Settings, "NumFrames", &SettingsManager::NumFrames);
+		if(parseValue<uint16>(&Settings, "NumLeds", &SettingsManager::NumLeds) == false)
+		{
+			DisplayManager::PrintStatus("E: NumLeds is mandatory", 4);
+			return;
+		}
+		parseValue<uint16>(&Settings, "ActiveFrame", &SettingsManager::frameCounter);
+		parseValue<bool>(&Settings, "AnimationActive", &SettingsManager::animationActive);
+		parseValue<String>(&Settings, "ConfigFileVersion", &SettingsManager::fileVersion);
+		bool debugMode = DEFAULT_DEBUG_MODE;
+		parseValue<bool>(&Settings, "DisplayDebugInfo", &debugMode);
+
+		if(debugMode == true)
+		{
+			SettingsManager::DisplayDebugInfo = DISPLAY_DEBUG_ENABLED;
+		}
+		else
+		{
+			SettingsManager::DisplayDebugInfo = DISPLAY_DEBUG_DISABLED;
+		}
+
+		JsonObject Frames;
+		if(parseValue<JsonObject>(&root, "Frames", &Frames) == false)
+		{
+			DisplayManager::PrintStatus("E: No Frame data", 4);
+			FrameBuffer::init(SettingsManager::NumLeds, SettingsManager::NumFrames);
+			return;
+		}
+
+		JsonArray Leds;
+		
+		uint16 i = 0;
+		for(uint16 f = 0; f < SettingsManager::NumFrames; f++)
+		{
+			if(parseValue<JsonArray>(&Frames, String(f), &Leds) == true)
+			{
+				for(JsonVariant v : Leds)
+				{
+					if(i < SettingsManager::NumLeds)
+					{
+						if(!v.is<uint32>())
+						{
+							DisplayManager::PrintStatus("E: Color led "  + String(i) + " not uint32", 4);
+						}
+						else
+						{
+							FrameBuffer::setLED(f, i, v.as<uint32>());
+						}
+					}
+					else
+					{
+						DisplayManager::PrintStatus("Led id " + String(i) + " ignored. Too high", 4);
+					}
+					i++;
+				}
+			}
+		}
+	}
+}
