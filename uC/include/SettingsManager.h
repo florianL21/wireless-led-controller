@@ -23,9 +23,9 @@ public:
 	static String fileVersion;
 
 	static bool init();
-	template <class valueType>
-	static bool parseValue(JsonObject* root, String key, valueType* value);
+	template <class valueType, class jsonObjectType>
+	static bool parseValue(jsonObjectType* root, String key, valueType* value);
 	static String serializeConfiguration();
-	static void deserializeConfiguration(String json);
+	static void deserializeConfiguration(String json, uint16 numFrames, uint16 numLeds);
 };
 

@@ -61,8 +61,8 @@ String SettingsManager::serializeConfiguration()
 	return String(JSONmessageBuffer);
 }
 
-template <class valueType>
-bool SettingsManager::parseValue(JsonObject* root, String key, valueType* value) 
+template <class valueType, class jsonObjectType>
+bool SettingsManager::parseValue(jsonObjectType* root, String key, valueType* value) 
 {
 	bool sucessful = false;
 	JsonVariant jvalue = (*root)[key];
@@ -81,29 +81,33 @@ bool SettingsManager::parseValue(JsonObject* root, String key, valueType* value)
 	return sucessful;
 }
 
-void SettingsManager::deserializeConfiguration(String json)
+void SettingsManager::deserializeConfiguration(String json, uint16 numFrames, uint16 numLeds)
 {
-	//							settings+headroom		the 2 nested arrays						all led arrays												single led array length					frames array length							general headroom for copy operations
-	const size_t FrameCapacity = JSON_OBJECT_SIZE(10) + JSON_OBJECT_SIZE(2) + SettingsManager::NumFrames*JSON_ARRAY_SIZE(SettingsManager::NumLeds) + JSON_OBJECT_SIZE(SettingsManager::NumLeds) + JSON_OBJECT_SIZE(SettingsManager::NumFrames) + 130 + 40 * SettingsManager::NumFrames;
+	//							settings+headroom		the 2 nested arrays			all led arrays					frames array length			general headroom for copy operations
+	const size_t FrameCapacity = JSON_OBJECT_SIZE(8) + JSON_OBJECT_SIZE(2) + numFrames*JSON_ARRAY_SIZE(numLeds)  + JSON_OBJECT_SIZE(numFrames) + 10 * numFrames;
 	DynamicJsonDocument doc(FrameCapacity);
 	DeserializationError error = deserializeJson(doc, json);
 
-	if (error) 
+	if (error)
     {
-		DisplayManager::PrintStatus("E: Parsing json", 4);
+		DisplayManager::PrintStatus("E: json:" + String(error.c_str()), 4);
 	}
 	else
 	{
-		JsonObject root = doc.to<JsonObject>();
 		JsonObject Settings;
-		if(parseValue<JsonObject>(&root, "Settings", &Settings) == false)
+		if(parseValue<JsonObject>(&doc, "Settings", &Settings) == false)
 		{
 			DisplayManager::PrintStatus("E: Settings is mandatory", 4);
 			return;
 		}
 		parseValue<uint8>(&Settings, "Brightness", &SettingsManager::Brightness);
 		parseValue<uint16>(&Settings, "Framerate", &SettingsManager::Framerate);
-		parseValue<uint16>(&Settings, "NumFrames", &SettingsManager::NumFrames);
+		if(parseValue<uint16>(&Settings, "NumFrames", &SettingsManager::NumFrames) == false)
+		{
+			DisplayManager::PrintStatus("E: NumFrames is mandatory", 4);
+			return;
+		}
+		
 		if(parseValue<uint16>(&Settings, "NumLeds", &SettingsManager::NumLeds) == false)
 		{
 			DisplayManager::PrintStatus("E: NumLeds is mandatory", 4);
@@ -125,20 +129,21 @@ void SettingsManager::deserializeConfiguration(String json)
 		}
 
 		JsonObject Frames;
-		if(parseValue<JsonObject>(&root, "Frames", &Frames) == false)
+		if(parseValue<JsonObject>(&doc, "Frames", &Frames) == false)
 		{
 			DisplayManager::PrintStatus("E: No Frame data", 4);
-			FrameBuffer::init(SettingsManager::NumLeds, SettingsManager::NumFrames);
+			
 			return;
 		}
+		FrameBuffer::init(SettingsManager::NumLeds, SettingsManager::NumFrames);
 
 		JsonArray Leds;
-		
 		uint16 i = 0;
 		for(uint16 f = 0; f < SettingsManager::NumFrames; f++)
 		{
 			if(parseValue<JsonArray>(&Frames, String(f), &Leds) == true)
 			{
+				i = 0;
 				for(JsonVariant v : Leds)
 				{
 					if(i < SettingsManager::NumLeds)
