@@ -27,7 +27,7 @@ public:
 	template <class valueType, class jsonObjectType>
 	static bool parseValue(jsonObjectType* root, String key, valueType* value);
 	static String serializeConfiguration();
-	static void initWithDefaults();
+	static bool initWithDefaults();
 	static bool deserializeConfiguration(String json, uint64 initialDocSize = JSON_BUFFER_CHUNK_SIZE);
 	/**
 	 * \brief Attempts to read the configuration from memory. 

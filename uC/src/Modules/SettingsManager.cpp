@@ -80,7 +80,7 @@ void SettingsManager::closeMemory()
 	SPIFFS.end();
 }
 
-void SettingsManager::initWithDefaults()
+bool SettingsManager::initWithDefaults()
 {
 	SettingsManager::Framerate			= DEFAULT_FRAMERATE;
 	SettingsManager::Brightness			= DEFAULT_BRIGHTNESS;
@@ -89,6 +89,20 @@ void SettingsManager::initWithDefaults()
 	SettingsManager::frameCounter		= 0;
 	SettingsManager::animationActive	= DEFAULT_ANIM_ENABLE;
 	SettingsManager::DisplayDebugInfo	= DEFAULT_DEBUG_MODE;
+
+	DisplayManager::setDebugOutput(SettingsManager::DisplayDebugInfo);
+	if(LEDManager::init(SettingsManager::NumLeds) == false)
+	{
+		DisplayManager::PrintStatus("LED init", 3);
+		return false;
+	}
+	LEDManager::setFramerate(SettingsManager::Framerate);
+	if(FrameBuffer::init(SettingsManager::NumLeds, SettingsManager::NumFrames) == false)
+	{
+		DisplayManager::PrintStatus("Framebuffer init", 3);
+		return false;
+	}
+	return true;
 }
 
 String SettingsManager::serializeConfiguration()
@@ -221,9 +235,6 @@ bool SettingsManager::deserializeConfiguration(String json, uint64 initialDocSiz
 		JsonObject Frames;
 		ERROR_HANDLING(parseValue<JsonObject>(doc, "Frames", &Frames), "E: No Frame data");
 
-		// initializing Framebuffer
-		ERROR_HANDLING(FrameBuffer::init(NumLeds, NumFrames), "E: frame buffer init");
-
 		//Setting all values after all sanity checks are passed to not create an invalid config if something along the line fails
 		SettingsManager::NumFrames = NumFrames;
 		SettingsManager::NumLeds = NumLeds;
@@ -240,6 +251,12 @@ bool SettingsManager::deserializeConfiguration(String json, uint64 initialDocSiz
 		{
 			SettingsManager::DisplayDebugInfo = DISPLAY_DEBUG_DISABLED;
 		}
+
+		//call all the init methods
+		DisplayManager::setDebugOutput(SettingsManager::DisplayDebugInfo);
+		ERROR_HANDLING(LEDManager::init(SettingsManager::NumLeds), "E: LED init");
+		LEDManager::setFramerate(SettingsManager::Framerate);
+		ERROR_HANDLING(FrameBuffer::init(SettingsManager::NumLeds, SettingsManager::NumFrames), "E: Framebuffer init");
 
 		JsonArray Leds;
 		uint16 i = 0;

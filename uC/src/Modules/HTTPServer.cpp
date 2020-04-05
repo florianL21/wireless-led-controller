@@ -359,11 +359,26 @@ void HTTPServer::postSettings()
 	}
 }
 
+void HTTPServer::saveSettingsToMemory()
+{
+	if(SettingsManager::saveConfigToMemory() == true)
+	{
+		DisplayManager::PrintStatus("Config stored", 4, DISPLAY_DEBUG_ENABLED);
+	}
+	else
+	{
+		DisplayManager::PrintStatus("E: Config not stored", 4);
+	}
+	http_rest_server->sendHeader("Location", "/store");
+	http_rest_server->send(200);
+}
+
 void HTTPServer::config_rest_server_routing() 
 {
 	http_rest_server->on("/", HTTP_GET, getAll);
 	http_rest_server->on("/led", HTTP_POST, postLed);
 	http_rest_server->on("/leds", HTTP_POST, postFrame);
+	http_rest_server->on("/store", HTTP_POST, saveSettingsToMemory);
 	http_rest_server->on("/settings", HTTP_GET, getSettings);
 	http_rest_server->on("/settings", HTTP_POST, postSettings);
 }

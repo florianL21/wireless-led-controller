@@ -35,13 +35,8 @@ void setup(void)
 	}
 	else
 	{
-		SettingsManager::initWithDefaults();
+		CHECK_FOR_ERRORS(SettingsManager::initWithDefaults(), "Default config load");
 	}
-
-	DisplayManager::setDebugOutput(SettingsManager::DisplayDebugInfo);
-	CHECK_FOR_ERRORS(LEDManager::init(SettingsManager::NumLeds), "LED init");
-	LEDManager::setFramerate(SettingsManager::Framerate);
-	CHECK_FOR_ERRORS(FrameBuffer::init(SettingsManager::NumLeds, SettingsManager::NumFrames), "Framebuffer init");
 
 	if (HTTPServer::init_wifi(WIFI_SSID, WIFI_PASSWORD, MAX_WIFI_INIT_RETRY, WIFI_RETRY_DELAY) == WL_CONNECTED) 
 	{

@@ -21,6 +21,7 @@ private:
     static void postSettings();
     static void getSettings();
     static void config_rest_server_routing();
+    static void saveSettingsToMemory();
 public:
     static bool init(int port);
     ~HTTPServer();
