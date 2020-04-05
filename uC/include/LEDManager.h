@@ -16,12 +16,15 @@ private:
 	static CFastLED* FastLedConfig;
 	static uint64 oldMillis;
 	static uint16 refreshIntervall;
+	static bool isInitialized;
 
 	static void Print(uint16 frameNum);
 
 	LEDManager();
 public:
-	static void init(uint16 numLEDs);
+	static bool init(uint16 numLEDs);
+	//call this to check whether LEDManager was already initialized
+	static bool initCheck();
 	
 	static void update();
 	static void setFramerate(uint16 Framerate);

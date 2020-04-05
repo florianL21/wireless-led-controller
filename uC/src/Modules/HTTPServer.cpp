@@ -2,11 +2,17 @@
 
 ESP8266WebServer* HTTPServer::http_rest_server = NULL;
 
-void HTTPServer::init(int port)
+bool HTTPServer::init(int port)
 {
     http_rest_server = new ESP8266WebServer(port);
+	if(http_rest_server == NULL)
+	{
+		DisplayManager::PrintStatus("Not enought memory", 1);
+		return false;
+	}
     config_rest_server_routing();
     http_rest_server->begin();
+	return true;
 }
 
 int HTTPServer::init_wifi(const char* wifi_ssid, const char* wifi_passwd, uint8 numRetrys, uint16 retryDelay)

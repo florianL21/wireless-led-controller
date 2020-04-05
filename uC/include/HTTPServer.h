@@ -22,7 +22,7 @@ private:
     static void getSettings();
     static void config_rest_server_routing();
 public:
-    static void init(int port);
+    static bool init(int port);
     ~HTTPServer();
 
     static int init_wifi(const char* wifi_ssid, const char* wifi_passwd, uint8 numRetrys, uint16 retryDelay);

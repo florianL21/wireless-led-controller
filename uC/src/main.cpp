@@ -4,16 +4,44 @@
 #include "FrameBuffer.h"
 #include "HTTPServer.h"
 
-String test = "{'Settings':{'Brightness':255,'Framerate':1,'NumFrames':20,'NumLeds':20,'ActiveFrame':17,'AnimationActive':true,'ConfigFileVersion':'0.0.0','DisplayDebugInfo':false},'Frames':{'0':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],'1':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],'2':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],'3':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],'4':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],'5':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],'6':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],'7':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],'8':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],'9':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],'10':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],'11':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],'12':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],'13':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],'14':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],'15':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],'16':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],'17':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],'18':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],'19':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}}";
+bool initOK = true;
+
+#define CHECK_FOR_ERRORS(x, msg) if(x == false) { systemError(msg); }
+
+void systemError(String location)
+{
+	DisplayManager::PrintStatus("System will not start", 1);
+	DisplayManager::PrintStatus("ERROR at:", 2);
+	DisplayManager::PrintStatus(location, 3);
+	
+	while(1) // endless loop to keep the system from going any further
+	{
+		wdt_reset(); //prevent the watchdog from resetting the system
+	} 
+}
 
 void setup(void) 
 {
 	Serial.begin(115200);
 	DisplayManager::init(DEFAULT_DEBUG_MODE, DEFAULT_DISPLAY_TIMEOUT);
 	DisplayManager::PrintStatus("Starting...", 1);
-	LEDManager::init(DEFAULT_NUM_LED);
-	LEDManager::setFramerate(DEFAULT_FRAMERATE);
-	FrameBuffer::init(DEFAULT_NUM_LED, DEFAULT_NUM_FRAMES);
+	DisplayManager::PrintStatus("Loading settings...", 2);
+	if(LOAD_CONFIG_ON_STARTUP)
+	{
+		CHECK_FOR_ERRORS(SettingsManager::init(), "Memory init");
+		// To be enabled if you break the configuration stored in memory somehow and the system keeps resetting
+		// SettingsManager::saveConfigToMemory();
+		CHECK_FOR_ERRORS(SettingsManager::loadConfigFromMemory(), "Config load");
+	}
+	else
+	{
+		SettingsManager::initWithDefaults();
+	}
+
+	DisplayManager::setDebugOutput(SettingsManager::DisplayDebugInfo);
+	CHECK_FOR_ERRORS(LEDManager::init(SettingsManager::NumLeds), "LED init");
+	LEDManager::setFramerate(SettingsManager::Framerate);
+	CHECK_FOR_ERRORS(FrameBuffer::init(SettingsManager::NumLeds, SettingsManager::NumFrames), "Framebuffer init");
 
 	if (HTTPServer::init_wifi(WIFI_SSID, WIFI_PASSWORD, MAX_WIFI_INIT_RETRY, WIFI_RETRY_DELAY) == WL_CONNECTED) 
 	{
@@ -26,8 +54,9 @@ void setup(void)
 		DisplayManager::PrintStatus("Error connecting to:", 1);
 		DisplayManager::PrintStatus(WIFI_SSID, 2);
 	}
-	HTTPServer::init(HTTP_REST_PORT);
-	SettingsManager::deserializeConfiguration(test);
+
+	CHECK_FOR_ERRORS(HTTPServer::init(HTTP_REST_PORT), "HTTP init");
+	//if this point is reached everything was initialized without any errors
 }
 
 void loop(void)

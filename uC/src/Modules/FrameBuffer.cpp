@@ -41,6 +41,11 @@ bool FrameBuffer::init(uint16 numOfLEDs, uint16 numOfFrames)
 	return true;
 }
 
+bool FrameBuffer::initCheck()
+{
+	return isInitialized;
+}
+
 uint32 FrameBuffer::getLED(uint16 frame, uint16 index)
 {
 	// if(frameBuffer != NULL && frame < numFrames && index < numLeds)

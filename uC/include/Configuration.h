@@ -61,5 +61,8 @@
 #define MAX_JSON_BUFFER         100000
 #define JSON_BUFFER_CHUNK_SIZE  1000
 #define CONFIG_FILE_NAME        "Configuration.json"
+// if true this will attempt to load the last saved configuration from the memory
+// if false the system will initialize with the configured defaults.
+#define LOAD_CONFIG_ON_STARTUP  true
 
 #endif

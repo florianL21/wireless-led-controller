@@ -1,6 +1,6 @@
 #include "SettingsManager.h"
 
-String SettingsManager::fileVersion = "0.0.0";
+const String SettingsManager::fileVersion = "0.0.0";
 
 uint16 SettingsManager::Framerate				= DEFAULT_FRAMERATE;
 uint8 SettingsManager::Brightness				= DEFAULT_BRIGHTNESS;
@@ -15,7 +15,7 @@ bool SettingsManager::init()
 {
 	bool initOK = true;
 	SPIFFSConfig cfg;
-	cfg.setAutoFormat(false);
+	cfg.setAutoFormat(true); // automatically format if the filesystem is not usable
 	initOK &= SPIFFS.setConfig(cfg);
 	initOK &= SPIFFS.begin();
 	return initOK;
@@ -23,21 +23,72 @@ bool SettingsManager::init()
 
 bool SettingsManager::loadConfigFromMemory()
 {
+	bool loadOK = false;
 	if(SPIFFS.exists(CONFIG_FILE_NAME))
 	{
-
+		File f = SPIFFS.open(CONFIG_FILE_NAME, "r");
+		if (!f) 
+		{
+			DisplayManager::PrintStatus("E: Open config  file failed", 4);
+		}
+		else
+		{
+			loadOK = deserializeConfiguration(f.readString());
+			f.close();
+		}
 	}
-	return true;
+	else
+	{
+		//if the file does not exist yet init everything to the defaults values and write the file so that it can be used next time
+		initWithDefaults();
+		if(saveConfigToMemory() == false) // only display a warning here since saving the config file is not mandatory for correct system operation.
+		{
+			DisplayManager::PrintStatus("W: Config save error", 4);
+		} 
+		loadOK = true;
+	}
+	return loadOK;
 }
 
 bool SettingsManager::saveConfigToMemory()
 {
-	return true;
+	bool writeOK = false;
+	String fileContent = serializeConfiguration();
+	File f = SPIFFS.open(CONFIG_FILE_NAME, "w+");
+	if (!f) 
+	{
+		DisplayManager::PrintStatus("E: Open config file failed", 4);
+	}
+	else
+	{
+		size_t writtenLen = f.print(fileContent);
+		f.close();
+		if(writtenLen == fileContent.length())
+		{
+			writeOK = true;
+		}
+		else
+		{
+			DisplayManager::PrintStatus("E: config write suspect", 4);
+		}
+	}
+	return writeOK;
 }
 
 void SettingsManager::closeMemory()
 {
 	SPIFFS.end();
+}
+
+void SettingsManager::initWithDefaults()
+{
+	SettingsManager::Framerate			= DEFAULT_FRAMERATE;
+	SettingsManager::Brightness			= DEFAULT_BRIGHTNESS;
+	SettingsManager::NumLeds 			= DEFAULT_NUM_LED;
+	SettingsManager::NumFrames			= DEFAULT_NUM_FRAMES;
+	SettingsManager::frameCounter		= 0;
+	SettingsManager::animationActive	= DEFAULT_ANIM_ENABLE;
+	SettingsManager::DisplayDebugInfo	= DEFAULT_DEBUG_MODE;
 }
 
 String SettingsManager::serializeConfiguration()
@@ -64,12 +115,16 @@ String SettingsManager::serializeConfiguration()
 	}
 
 	JsonObject Frames = root.createNestedObject("Frames");
+	uint32 color = 0; //TODO: Maybe replace with some default color define
 	for(uint16 f = 0; f < SettingsManager::NumFrames; f++)
 	{
 		JsonArray FrameArray= Frames.createNestedArray(String(f));
 		for(uint16 l = 0; l < SettingsManager::NumLeds; l++)
 		{
-			uint32 color = LEDManager::getColorCode(FrameBuffer::getLED(f, l));
+			if(FrameBuffer::initCheck() == true) //check if frame buffer is ready to be used
+			{
+				color = LEDManager::getColorCode(FrameBuffer::getLED(f, l));
+			}
 			FrameArray.add(color);
 		}
 	}
@@ -99,20 +154,22 @@ bool SettingsManager::parseValue(jsonObjectType* root, String key, valueType* va
 	return sucessful;
 }
 
-bool SettingsManager::deserializeConfiguration(String json)
+bool SettingsManager::deserializeConfiguration(String json, uint64 initialDocSize)
 {
+	#define ERROR_HANDLING(x, msg) if(x == false) { DisplayManager::PrintStatus(msg, 4); delete doc; return false;}
 	//try  to initialize a json document big enought to fit all the data
-	uint32 DocumentSize = JSON_BUFFER_CHUNK_SIZE;
+	uint64 DocumentSize = initialDocSize;
 	DynamicJsonDocument* doc;
 	bool successful = false;
 
+	//settings that have to be parsed. Must be initialized with their current values
 	bool debugMode = DEFAULT_DEBUG_MODE;
-	uint16 NumFrames;
-	uint16 NumLeds;
-	uint8 Brightness;
-	uint16 Framerate;
-	uint16 frameCounter;
-	bool animationActive;
+	uint16 NumFrames = SettingsManager::NumFrames;
+	uint16 NumLeds = SettingsManager::NumLeds;
+	uint8 Brightness = SettingsManager::Brightness;
+	uint16 Framerate = SettingsManager::Framerate;
+	uint16 frameCounter = SettingsManager::frameCounter;
+	bool animationActive = SettingsManager::animationActive;
 	String fileVersion;
 
 	do
@@ -142,46 +199,30 @@ bool SettingsManager::deserializeConfiguration(String json)
 	if(successful == true)
 	{
 		JsonObject Settings;
-		if(parseValue<JsonObject>(doc, "Settings", &Settings) == false)
+		ERROR_HANDLING(parseValue<JsonObject>(doc, "Settings", &Settings), "E: Settings is mandatory");
+		ERROR_HANDLING(parseValue<JsonObject>(doc, "Settings", &Settings), "E: Settings is mandatory");
+
+		if(parseValue<String>(&Settings, "ConfigFileVersion", &fileVersion) == true) //check file version if present otherwise skip this step
 		{
-			DisplayManager::PrintStatus("E: Settings is mandatory", 4);
-			delete doc;
-			return false;
+			if(fileVersion.equals(SettingsManager::fileVersion) == false)
+			{
+				DisplayManager::PrintStatus("W: config version changed", 4);
+			}
 		}
-		if(parseValue<uint16>(&Settings, "NumFrames", &NumFrames) == false)
-		{
-			DisplayManager::PrintStatus("E: NumFrames is mandatory", 4);
-			delete doc;
-			return false;
-		}
-		if(parseValue<uint16>(&Settings, "NumLeds", &NumLeds) == false)
-		{
-			DisplayManager::PrintStatus("E: NumLeds is mandatory", 4);
-			delete doc;
-			return false;
-		}
+		ERROR_HANDLING(parseValue<uint16>(&Settings, "NumFrames", &NumFrames), "E: NumFrames is mandatory");
+		ERROR_HANDLING(parseValue<uint16>(&Settings, "NumLeds", &NumLeds), "E: NumLeds is mandatory");
 
 		parseValue<uint8>(&Settings, "Brightness", &Brightness);
 		parseValue<uint16>(&Settings, "Framerate", &Framerate);
 		parseValue<uint16>(&Settings, "ActiveFrame", &frameCounter);
 		parseValue<bool>(&Settings, "AnimationActive", &animationActive);
-		parseValue<String>(&Settings, "ConfigFileVersion", &fileVersion);
 		parseValue<bool>(&Settings, "DisplayDebugInfo", &debugMode);
 
 		JsonObject Frames;
-		if(parseValue<JsonObject>(doc, "Frames", &Frames) == false)
-		{
-			DisplayManager::PrintStatus("E: No Frame data", 4);
-			delete doc;
-			return false;
-		}
+		ERROR_HANDLING(parseValue<JsonObject>(doc, "Frames", &Frames), "E: No Frame data");
 
 		// initializing Framebuffer
-		if(FrameBuffer::init(NumLeds, NumFrames) == false)
-		{
-			delete doc;
-			return false;
-		}
+		ERROR_HANDLING(FrameBuffer::init(NumLeds, NumFrames), "E: frame buffer init");
 
 		//Setting all values after all sanity checks are passed to not create an invalid config if something along the line fails
 		SettingsManager::NumFrames = NumFrames;
@@ -190,7 +231,6 @@ bool SettingsManager::deserializeConfiguration(String json)
 		SettingsManager::Framerate = Framerate;
 		SettingsManager::frameCounter = frameCounter;
 		SettingsManager::animationActive = animationActive;
-		SettingsManager::fileVersion = fileVersion;
 
 		if(debugMode == true)
 		{
