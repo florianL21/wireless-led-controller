@@ -52,7 +52,7 @@
 #define DISPLAY_NUM_ROWS		4
 #define DISPLAY_MAX_LENGTH		22
 // Useful for debugging. Set to true to mirror all messages printed on the display also to serial (including debug messages even if debug is turned off).
-#define MIRROR_DSPLAY_TO_SERIAL	true
+#define MIRROR_DSPLAY_TO_SERIAL	false
 
 
 /*************************
