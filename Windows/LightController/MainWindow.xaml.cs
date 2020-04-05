@@ -66,34 +66,52 @@ namespace LightController
             convertDataToView();
         }
 
+        async private Task<bool> HttpHelperSend(object objectToSend, string propertyName)
+        {
+            if (HttpClient == null)
+            {
+                HttpClient = new httpHelper(TextBox_IpAddress.Text);
+            }
+            return await HttpClient.sendObject(objectToSend, propertyName);
+        }
+
+        async private void Button_StoreSettings_Click(object sender, RoutedEventArgs e)
+        {
+            Button senderButton = sender as Button;
+            senderButton.IsEnabled = false;
+            await HttpHelperSend(null, "store");
+            senderButton.IsEnabled = true;
+        }
+
         private void Button_Connect_Click(object sender, RoutedEventArgs e)
         {
             
             
         }
 
-        async private void sendData()
+        async private Task<bool> sendData()
         {
-            if (HttpClient == null)
-            {
-                HttpClient = new httpHelper(TextBox_IpAddress.Text);
-            }
-            await HttpClient.sendObject(config, "settings");
+            await HttpHelperSend(config, "settings");
+            bool success = false;
             foreach (var item in config.Frames)
             {
-                bool success = await HttpClient.sendObject(item, "leds");
+                success = await HttpClient.sendObject(item, "leds");
                 if(!success)
                 {
                     MessageBox.Show("Sendig of the configuration was aborted at frame " + item.Frame);
                     break;
                 }
             }
+            return success;
         }
 
-        private void Button_sendFrames_Click(object sender, RoutedEventArgs e)
+        async private void Button_sendFrames_Click(object sender, RoutedEventArgs e)
         {
+            Button senderButton = sender as Button;
+            senderButton.IsEnabled = false;
             convertViewToData();
-            sendData();
+            await sendData();
+            senderButton.IsEnabled = true;
         }
 
         public List<LedItem> getLedsAsList()
@@ -161,7 +179,7 @@ namespace LightController
             setupView(config.NumLeds, numRows);
         }
 
-
+        
 
 
         private void Button_Click(object sender, RoutedEventArgs e)
@@ -169,6 +187,8 @@ namespace LightController
             Button clickedButton = e.Source as Button;
             int id = int.Parse(clickedButton.Tag.ToString());
             LedItem selectedItem = null;
+            SolidColorBrush color = null;
+
 
             foreach (var item in LedStripes)
             {
@@ -185,7 +205,8 @@ namespace LightController
                     }
                 }
             }
-            if(selectedItem != null)
+            color = selectedItem.Color;
+            if (selectedItem != null)
             {
                 if (!isShiftPressed && !isControlPressed)
                 {
@@ -197,10 +218,18 @@ namespace LightController
                         }
                     }
                     selectedItem.selected = true;
+                    color = selectedItem.Color;
                 }
                 else if (isControlPressed && !isShiftPressed)
                 {
                     selectedItem.selected = true;
+                    if (color != null)
+                    {
+                        if (color.Color != selectedItem.Color.Color)
+                        {
+                            color = null;
+                        }
+                    }
                 }
                 else if (isShiftPressed)
                 {
@@ -221,6 +250,13 @@ namespace LightController
                         for (int i = startIndex; i <= endIndex; i++)
                         {
                             ledList[i].selected = true;
+                            if (color != null)
+                            {
+                                if (color.Color != ledList[i].Color.Color)
+                                {
+                                    color = null;
+                                }
+                            }
                         }
                     }
                     else
@@ -230,20 +266,33 @@ namespace LightController
                 }
                 lastSelectedItem = selectedItem;
             }
+            if(color == null)
+            {
+                ColorPicker1.SelectedColor = null;
+            }
+            else
+            {
+                ColorPicker1.SelectedColor = Color.FromArgb(color.Color.A, color.Color.R, color.Color.G, color.Color.B);
+            }
+            
         }
 
         private void ColorPicker1_SelectedColorChanged(object sender, RoutedPropertyChangedEventArgs<Color?> e)
         {
             var color = ColorPicker1.SelectedColor;
 
-            foreach (var item in LedStripes)
+            if(color != null)
             {
-                var m = item.LedItems.Where(x => x.selected == true).ToList();
+                foreach (var item in LedStripes)
+                {
+                    var m = item.LedItems.Where(x => x.selected == true).ToList();
 
-                m.ForEach(x => {
-                    x.Color = new SolidColorBrush(color.Value);
-                });
+                    m.ForEach(x => {
+                        x.Color = new SolidColorBrush(color.Value);
+                    });
+                }
             }
+            
         }
 
         protected override void OnKeyDown(KeyEventArgs e)

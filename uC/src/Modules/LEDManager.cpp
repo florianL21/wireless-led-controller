@@ -78,9 +78,9 @@ void LEDManager::update()
 uint32 LEDManager::getColorCode(CRGB led)
 {
 	uint32 colorCode = 0x0;
-	colorCode |= led.red;
+	colorCode |= led.blue;
 	colorCode |= (led.green << 8);
-	colorCode |= (led.blue << 16);
+	colorCode |= (led.red << 16);
 	return colorCode;
 }
 
