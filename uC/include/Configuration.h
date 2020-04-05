@@ -21,14 +21,17 @@
 #define DEFAULT_BRIGHTNESS		255
 #define DEFAULT_FRAMERATE		5
 #define DEFAULT_DEBUG_MODE		DISPLAY_DEBUG_DISABLED
-#define DEFAULT_DISPLAY_TIMEOUT	10
+#define DEFAULT_DISPLAY_TIMEOUT	60
 
 /*************************
  * WIFI configuration:
  *************************/
-
-#define WIFI_SSID				"YOUR_WIFI_NAME"
-#define WIFI_PASSWORD			"YOUR_WIFI_PASSWORD"
+#ifndef WIFI_SSID
+    #define WIFI_SSID			"YOUR_WIFI_NAME"
+#endif
+#ifndef WIFI_PASSWORD
+    #define WIFI_PASSWORD		"YOUR_WIFI_PASSWORD"
+#endif
 
 //can be changed to improve startup speed of the programm
 #define WIFI_RETRY_DELAY		500
@@ -48,6 +51,18 @@
 #define DISPLAY_FONT_SIZE		8
 #define DISPLAY_NUM_ROWS		4
 #define DISPLAY_MAX_LENGTH		22
+// Useful for debugging. Set to true to mirror all messages printed on the display also to serial (including debug messages even if debug is turned off).
+#define MIRROR_DSPLAY_TO_SERIAL	false
 
+
+/*************************
+ * Memory configuration:
+ *************************/
+#define MAX_JSON_BUFFER         100000
+#define JSON_BUFFER_CHUNK_SIZE  1000
+#define CONFIG_FILE_NAME        "Configuration.json"
+// if true this will attempt to load the last saved configuration from the memory
+// if false the system will initialize with the configured defaults.
+#define LOAD_CONFIG_ON_STARTUP  true
 
 #endif

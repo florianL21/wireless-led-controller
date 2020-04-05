@@ -2,11 +2,17 @@
 
 ESP8266WebServer* HTTPServer::http_rest_server = NULL;
 
-void HTTPServer::init(int port)
+bool HTTPServer::init(int port)
 {
     http_rest_server = new ESP8266WebServer(port);
+	if(http_rest_server == NULL)
+	{
+		DisplayManager::PrintStatus("Not enought memory", 1);
+		return false;
+	}
     config_rest_server_routing();
     http_rest_server->begin();
+	return true;
 }
 
 int HTTPServer::init_wifi(const char* wifi_ssid, const char* wifi_passwd, uint8 numRetrys, uint16 retryDelay)
@@ -29,41 +35,8 @@ int HTTPServer::init_wifi(const char* wifi_ssid, const char* wifi_passwd, uint8 
 void HTTPServer::getAll()
 {
 	DisplayManager::PrintStatus("Sending config ...", 4, DISPLAY_DEBUG_ENABLED);
-	//							settings+headroom		the 2 nested arrays						all led arrays												single led array length					frames array length							general headroom for copy operations
-	const size_t FrameCapacity = JSON_OBJECT_SIZE(10) + JSON_OBJECT_SIZE(2) + SettingsManager::NumFrames*JSON_ARRAY_SIZE(SettingsManager::NumLeds) + JSON_OBJECT_SIZE(SettingsManager::NumLeds) + JSON_OBJECT_SIZE(SettingsManager::NumFrames) + 130 + 40 * SettingsManager::NumFrames;
-	DynamicJsonDocument doc(FrameCapacity);
-	JsonObject root = doc.to<JsonObject>();
-	JsonObject Settings = root.createNestedObject("Settings");
-	Settings["Brightness"] = SettingsManager::Brightness;
-	Settings["Framerate"] = SettingsManager::Framerate;
-	Settings["NumFrames"] = SettingsManager::NumFrames;
-	Settings["NumLeds"] = SettingsManager::NumLeds;
-	Settings["ActiveFrame"] = SettingsManager::frameCounter;
-	Settings["AnimationActive"] = SettingsManager::animationActive;
-	if(SettingsManager::DisplayDebugInfo == DISPLAY_DEBUG_ENABLED)
-	{
-		Settings["DisplayDebugInfo"] = true;
-	}
-	else
-	{
-		Settings["DisplayDebugInfo"] = false;
-	}
-
-
-	JsonObject Frames = root.createNestedObject("Frames");
-	for(uint16 f = 0; f < SettingsManager::NumFrames; f++)
-	{
-		JsonArray FrameArray= Frames.createNestedArray(String(f));
-		for(uint16 l = 0; l < SettingsManager::NumLeds; l++)
-		{
-			uint32 color = LEDManager::getColorCode(FrameBuffer::getLED(f, l));
-			FrameArray.add(color);
-		}
-	}
-	uint32 length = measureJson(doc) + 1;
-	char *JSONmessageBuffer = new char[length];
-	serializeJson(doc, JSONmessageBuffer, length);
-	http_rest_server->send(length, "application/json", JSONmessageBuffer);
+	String serializedJson = SettingsManager::serializeConfiguration();
+	http_rest_server->send(serializedJson.length(), "application/json", serializedJson);
 	DisplayManager::PrintStatus("Sending config done", 4, DISPLAY_DEBUG_ENABLED);
 }
 
@@ -386,11 +359,26 @@ void HTTPServer::postSettings()
 	}
 }
 
+void HTTPServer::saveSettingsToMemory()
+{
+	if(SettingsManager::saveConfigToMemory() == true)
+	{
+		DisplayManager::PrintStatus("Config stored", 4, DISPLAY_DEBUG_ENABLED);
+	}
+	else
+	{
+		DisplayManager::PrintStatus("E: Config not stored", 4);
+	}
+	http_rest_server->sendHeader("Location", "/store");
+	http_rest_server->send(200);
+}
+
 void HTTPServer::config_rest_server_routing() 
 {
 	http_rest_server->on("/", HTTP_GET, getAll);
 	http_rest_server->on("/led", HTTP_POST, postLed);
 	http_rest_server->on("/leds", HTTP_POST, postFrame);
+	http_rest_server->on("/store", HTTP_POST, saveSettingsToMemory);
 	http_rest_server->on("/settings", HTTP_GET, getSettings);
 	http_rest_server->on("/settings", HTTP_POST, postSettings);
 }

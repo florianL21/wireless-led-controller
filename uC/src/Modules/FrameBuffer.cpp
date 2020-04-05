@@ -6,7 +6,7 @@ uint16 FrameBuffer::numFrames = 0;
 uint16 FrameBuffer::numFramesOld = 0;
 uint16 FrameBuffer::numLeds = 0;
 
-void FrameBuffer::init(uint16 numOfLEDs, uint16 numOfFrames)
+bool FrameBuffer::init(uint16 numOfLEDs, uint16 numOfFrames)
 {
 	numFrames = numOfFrames;
 	numLeds = numOfLEDs;
@@ -21,7 +21,7 @@ void FrameBuffer::init(uint16 numOfLEDs, uint16 numOfFrames)
 	if(frameBuffer == NULL)
 	{
 		DisplayManager::PrintStatus("Not enought memory", 1);
-		return;
+		return false;
 	}
 	for (uint16 i = 0; i < numFrames; i++)
 	{
@@ -29,7 +29,7 @@ void FrameBuffer::init(uint16 numOfLEDs, uint16 numOfFrames)
 		if(frameBuffer[i] == NULL)
 		{
 			DisplayManager::PrintStatus("Not enought memory", 1);
-			return;
+			return false;
 		}
 		for (uint16 j = 0; j < numLeds; j++)
 		{
@@ -38,6 +38,12 @@ void FrameBuffer::init(uint16 numOfLEDs, uint16 numOfFrames)
 	}
 	isInitialized = true;
 	numFramesOld = numFrames;
+	return true;
+}
+
+bool FrameBuffer::initCheck()
+{
+	return isInitialized;
 }
 
 uint32 FrameBuffer::getLED(uint16 frame, uint16 index)

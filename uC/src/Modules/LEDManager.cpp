@@ -4,8 +4,9 @@ CRGB* LEDManager::leds = NULL;
 CFastLED* LEDManager::FastLedConfig = NULL;
 uint64 LEDManager::oldMillis = 0;
 uint16 LEDManager::refreshIntervall = 10 ;
+bool LEDManager::isInitialized = false;
 
-void LEDManager::init(uint16 numLEDs)
+bool LEDManager::init(uint16 numLEDs)
 {
     if(leds != NULL)
 	{
@@ -15,13 +16,23 @@ void LEDManager::init(uint16 numLEDs)
 	if(leds == NULL)
 	{
 		DisplayManager::PrintStatus("Not enought memory", 1);
+		return false;
 	}
-	else
+	FastLedConfig = new CFastLED();
+	if(FastLedConfig == NULL)
 	{
-		FastLedConfig = new CFastLED();
-		FastLedConfig->addLeds<LED_TYPE, LED_DATA_PIN, LED_COLOR_MODE>(leds, numLEDs);
-		FastLED.setBrightness(SettingsManager::Brightness);
+		DisplayManager::PrintStatus("Not enought memory", 1);
+		return false;
 	}
+	FastLedConfig->addLeds<LED_TYPE, LED_DATA_PIN, LED_COLOR_MODE>(leds, numLEDs);
+	FastLED.setBrightness(SettingsManager::Brightness);
+	isInitialized = true;
+	return true;
+}
+
+bool LEDManager::initCheck()
+{
+	return isInitialized;
 }
 
 void LEDManager::Print(uint16 frameNum)
@@ -67,9 +78,9 @@ void LEDManager::update()
 uint32 LEDManager::getColorCode(CRGB led)
 {
 	uint32 colorCode = 0x0;
-	colorCode |= led.red;
+	colorCode |= led.blue;
 	colorCode |= (led.green << 8);
-	colorCode |= (led.blue << 16);
+	colorCode |= (led.red << 16);
 	return colorCode;
 }
 
