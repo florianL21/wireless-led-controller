@@ -26,6 +26,9 @@ public:
 	template <class valueType, class jsonObjectType>
 	static bool parseValue(jsonObjectType* root, String key, valueType* value);
 	static String serializeConfiguration();
-	static void deserializeConfiguration(String json, uint16 numFrames, uint16 numLeds);
+	static bool deserializeConfiguration(String json);
+	static bool loadConfigFromMemory();
+	static bool saveConfigToMemory();
+	static void closeMemory();
 };
 

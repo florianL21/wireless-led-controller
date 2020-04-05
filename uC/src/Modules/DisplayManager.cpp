@@ -26,6 +26,10 @@ void DisplayManager::init(debugOutput isInDebugMode, uint16 diplayTimeoutInSecon
 
 void DisplayManager::PrintStatus(const char status[], uint8 line, debugOutput debug)
 {
+	if(MIRROR_DSPLAY_TO_SERIAL)
+	{
+		Serial.println(status);
+	}
 	if(debug == DISPLAY_DEBUG_ENABLED && isDebug == DISPLAY_DEBUG_DISABLED)
 	{
 		return;

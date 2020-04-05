@@ -18,8 +18,26 @@ bool SettingsManager::init()
 	cfg.setAutoFormat(false);
 	initOK &= SPIFFS.setConfig(cfg);
 	initOK &= SPIFFS.begin();
-	SPIFFS.end();
 	return initOK;
+}
+
+bool SettingsManager::loadConfigFromMemory()
+{
+	if(SPIFFS.exists(CONFIG_FILE_NAME))
+	{
+
+	}
+	return true;
+}
+
+bool SettingsManager::saveConfigToMemory()
+{
+	return true;
+}
+
+void SettingsManager::closeMemory()
+{
+	SPIFFS.end();
 }
 
 String SettingsManager::serializeConfiguration()
@@ -81,43 +99,98 @@ bool SettingsManager::parseValue(jsonObjectType* root, String key, valueType* va
 	return sucessful;
 }
 
-void SettingsManager::deserializeConfiguration(String json, uint16 numFrames, uint16 numLeds)
+bool SettingsManager::deserializeConfiguration(String json)
 {
-	//							settings+headroom		the 2 nested arrays			all led arrays					frames array length			general headroom for copy operations
-	const size_t FrameCapacity = JSON_OBJECT_SIZE(8) + JSON_OBJECT_SIZE(2) + numFrames*JSON_ARRAY_SIZE(numLeds)  + JSON_OBJECT_SIZE(numFrames) + 10 * numFrames;
-	DynamicJsonDocument doc(FrameCapacity);
-	DeserializationError error = deserializeJson(doc, json);
+	//try  to initialize a json document big enought to fit all the data
+	uint32 DocumentSize = JSON_BUFFER_CHUNK_SIZE;
+	DynamicJsonDocument* doc;
+	bool successful = false;
 
-	if (error)
-    {
-		DisplayManager::PrintStatus("E: json:" + String(error.c_str()), 4);
-	}
-	else
+	bool debugMode = DEFAULT_DEBUG_MODE;
+	uint16 NumFrames;
+	uint16 NumLeds;
+	uint8 Brightness;
+	uint16 Framerate;
+	uint16 frameCounter;
+	bool animationActive;
+	String fileVersion;
+
+	do
+	{
+		doc = new DynamicJsonDocument(DocumentSize);
+		DeserializationError error = deserializeJson(*doc, json);
+		if (error)
+		{
+			delete doc;
+			if (error.code() == DeserializationError::NoMemory)
+			{
+				DocumentSize += JSON_BUFFER_CHUNK_SIZE;
+			}
+			else
+			{
+				DisplayManager::PrintStatus("E: json:" + String(error.c_str()), 4);
+				return false;
+			}
+		}
+		else
+		{
+			successful = true;
+			break; //no error detected -> memory size is okay
+		}
+	} while (DocumentSize < MAX_JSON_BUFFER);
+	
+	if(successful == true)
 	{
 		JsonObject Settings;
-		if(parseValue<JsonObject>(&doc, "Settings", &Settings) == false)
+		if(parseValue<JsonObject>(doc, "Settings", &Settings) == false)
 		{
 			DisplayManager::PrintStatus("E: Settings is mandatory", 4);
-			return;
+			delete doc;
+			return false;
 		}
-		parseValue<uint8>(&Settings, "Brightness", &SettingsManager::Brightness);
-		parseValue<uint16>(&Settings, "Framerate", &SettingsManager::Framerate);
-		if(parseValue<uint16>(&Settings, "NumFrames", &SettingsManager::NumFrames) == false)
+		if(parseValue<uint16>(&Settings, "NumFrames", &NumFrames) == false)
 		{
 			DisplayManager::PrintStatus("E: NumFrames is mandatory", 4);
-			return;
+			delete doc;
+			return false;
 		}
-		
-		if(parseValue<uint16>(&Settings, "NumLeds", &SettingsManager::NumLeds) == false)
+		if(parseValue<uint16>(&Settings, "NumLeds", &NumLeds) == false)
 		{
 			DisplayManager::PrintStatus("E: NumLeds is mandatory", 4);
-			return;
+			delete doc;
+			return false;
 		}
-		parseValue<uint16>(&Settings, "ActiveFrame", &SettingsManager::frameCounter);
-		parseValue<bool>(&Settings, "AnimationActive", &SettingsManager::animationActive);
-		parseValue<String>(&Settings, "ConfigFileVersion", &SettingsManager::fileVersion);
-		bool debugMode = DEFAULT_DEBUG_MODE;
+
+		parseValue<uint8>(&Settings, "Brightness", &Brightness);
+		parseValue<uint16>(&Settings, "Framerate", &Framerate);
+		parseValue<uint16>(&Settings, "ActiveFrame", &frameCounter);
+		parseValue<bool>(&Settings, "AnimationActive", &animationActive);
+		parseValue<String>(&Settings, "ConfigFileVersion", &fileVersion);
 		parseValue<bool>(&Settings, "DisplayDebugInfo", &debugMode);
+
+		JsonObject Frames;
+		if(parseValue<JsonObject>(doc, "Frames", &Frames) == false)
+		{
+			DisplayManager::PrintStatus("E: No Frame data", 4);
+			delete doc;
+			return false;
+		}
+
+		// initializing Framebuffer
+		if(FrameBuffer::init(NumLeds, NumFrames) == false)
+		{
+			delete doc;
+			return false;
+		}
+
+		//Setting all values after all sanity checks are passed to not create an invalid config if something along the line fails
+		SettingsManager::NumFrames = NumFrames;
+		SettingsManager::NumLeds = NumLeds;
+		SettingsManager::Brightness = Brightness;
+		SettingsManager::Framerate = Framerate;
+		SettingsManager::frameCounter = frameCounter;
+		SettingsManager::animationActive = animationActive;
+		SettingsManager::fileVersion = fileVersion;
 
 		if(debugMode == true)
 		{
@@ -127,15 +200,6 @@ void SettingsManager::deserializeConfiguration(String json, uint16 numFrames, ui
 		{
 			SettingsManager::DisplayDebugInfo = DISPLAY_DEBUG_DISABLED;
 		}
-
-		JsonObject Frames;
-		if(parseValue<JsonObject>(&doc, "Frames", &Frames) == false)
-		{
-			DisplayManager::PrintStatus("E: No Frame data", 4);
-			
-			return;
-		}
-		FrameBuffer::init(SettingsManager::NumLeds, SettingsManager::NumFrames);
 
 		JsonArray Leds;
 		uint16 i = 0;
@@ -165,5 +229,8 @@ void SettingsManager::deserializeConfiguration(String json, uint16 numFrames, ui
 				}
 			}
 		}
+		delete doc;
+		return true;
 	}
+	return false;
 }

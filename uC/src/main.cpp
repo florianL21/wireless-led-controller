@@ -27,7 +27,7 @@ void setup(void)
 		DisplayManager::PrintStatus(WIFI_SSID, 2);
 	}
 	HTTPServer::init(HTTP_REST_PORT);
-	SettingsManager::deserializeConfiguration(test,20,20);
+	SettingsManager::deserializeConfiguration(test);
 }
 
 void loop(void)

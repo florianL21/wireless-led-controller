@@ -15,7 +15,7 @@ private:
 
 	FrameBuffer();
 public:
-	static void init(uint16 numOfLEDs, uint16 numOfFrames);
+	static bool init(uint16 numOfLEDs, uint16 numOfFrames);
 
 	static uint32 getLED(uint16 frame, uint16 index);
 	static void setLED(uint16 frame, uint16 index, uint32 color);
