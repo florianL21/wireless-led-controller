@@ -46,20 +46,19 @@ namespace LightController
             HttpClient = null;
 
             setupView(config.NumLeds, numRows);
-            
         }
 
         private void setupView(int numLEDs, int numRows)
         {
             LedStripes.Clear();
             int numLEDsPerRow = numLEDs / numRows;
-            
+            int id = 1;
             for (int i = 0; i < numRows; i++)
             {
                 var newLedItems = new ObservableCollection<LedItem>();
                 for (int j = 0; j < numLEDsPerRow; j++)
                 {
-                    newLedItems.Add(new LedItem() { Id = j * (i + 1), Color = Brushes.Black });
+                    newLedItems.Add(new LedItem() { Id = id++, Color = Brushes.Black });
                 }
                 LedStripes.Add(new LedStripe() { LedItems = newLedItems, Name = "Stripe" + i });
             }
@@ -85,7 +84,6 @@ namespace LightController
 
         private void Button_Connect_Click(object sender, RoutedEventArgs e)
         {
-            
             
         }
 
@@ -132,7 +130,8 @@ namespace LightController
             List<LedItem> leds = getLedsAsList();
             for (int i = 0; i < config.NumLeds; i++)
             {
-                leds[i].Color = colorConverter.ConvertToColor(config.Frames[config.CurrentFrame].Leds[i]);
+                int color = config.Frames[config.CurrentFrame].Leds[i];
+                leds[i].Color = colorConverter.ConvertToColor(color);
             }
         }
 
@@ -143,15 +142,6 @@ namespace LightController
             {
                 config.Frames[config.CurrentFrame].Leds[i] = colorConverter.ConvertToInt(leds[i].Color);
             }
-        }
-
-        private void Button_SendSettings_Click(object sender, RoutedEventArgs e)
-        {
-            if(HttpClient == null)
-            {
-                HttpClient = new httpHelper(TextBox_IpAddress.Text);
-            }
-            HttpClient.sendObject(config, "settings");
         }
 
         private void Button_PrevFrame_Click(object sender, RoutedEventArgs e)
@@ -174,14 +164,42 @@ namespace LightController
             convertDataToView();
         }
 
-        private void Button_CreateView_Click(object sender, RoutedEventArgs e)
+        async private void Button_CreateView_Click(object sender, RoutedEventArgs e)
         {
-            setupView(config.NumLeds, numRows);
+            if(config.NumLeds % numRows == 0)
+            {
+                setupView(config.NumLeds, numRows);
+                Button thisButton = sender as Button;
+                thisButton.IsEnabled = false;
+                convertViewToData();
+                if(await HttpHelperSend(config, "settings") == true)
+                {
+                    GroupBox_Frames.IsEnabled = true;
+                    GroupBox_Led.IsEnabled = true;
+                    GroupBox_Memory.IsEnabled = true;
+                }
+                thisButton.IsEnabled = true;
+            }
+            else
+            {
+                MessageBox.Show("Number of led's must be divisible by number of stripes");
+            }
         }
 
-        
+        private void TextBox_InvalidateView(object sender, TextChangedEventArgs e)
+        {
+            GroupBox_Frames.IsEnabled = false;
+            GroupBox_Led.IsEnabled = false;
+            GroupBox_Memory.IsEnabled = false;
+        }
+
+        private void Button_LoadFromTarget_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
 
 
+        //any of the led buttons was clicked
         private void Button_Click(object sender, RoutedEventArgs e)
         {
             Button clickedButton = e.Source as Button;
@@ -326,5 +344,6 @@ namespace LightController
             }
             base.OnKeyUp(e);
         }
+
     }
 }

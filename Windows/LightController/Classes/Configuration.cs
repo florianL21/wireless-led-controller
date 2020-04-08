@@ -79,6 +79,21 @@ namespace LightController
             {
                 _CurrentFrame = value;
                 NotifyPropertyChanged("CurrentFrame");
+                NotifyPropertyChanged("CurrentFramePretty");
+            }
+        }
+
+        public int CurrentFramePretty
+        {
+            get
+            {
+                return _CurrentFrame + 1;
+            }
+            set
+            {
+                _CurrentFrame = value - 1;
+                NotifyPropertyChanged("CurrentFramePretty");
+                NotifyPropertyChanged("CurrentFrame");
             }
         }
 
